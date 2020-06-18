@@ -6,14 +6,11 @@ except ImportError:
 
 
 class modzip(object):
-  
+    
   _index = None
   _count = None
   _max_iterations = None
-  _interables = None
-  _indexes = None
-  _lengths = None
-  _cache = None
+  _columns = None
   
   def __init__(self, *iterables, max_iterations=None):
     indexes = ", ".join("#{:d}".format(i+1) for i in range(len(iterables)) \
@@ -24,10 +21,7 @@ class modzip(object):
     self._index = 0
     self._count = n = len(iterables)
     self._max_iterations = max_iterations
-    self._iterables = tuple(iter(it) for it in iterables)
-    self._indexes = list(0 for i in range(n))
-    self._lengths = list(None for i in range(n))
-    self._cache = tuple([]  for i in range(n))
+    self._columns = tuple([iter(iterables[i]), [], None] for i in range(n))
   
   def __iter__(self):
     return self
@@ -36,27 +30,22 @@ class modzip(object):
     if self._max_iterations is not None and self._index >= self._max_iterations:
       raise StopIteration('exhausted')
     n = self._count
-    iterables = self._iterables
-    indexes = self._indexes
-    lengths = self._lengths
-    cache = self._cache
     result = []
     for i in range(n):
-      if lengths[i] is None:
+      iterable, cache, length = self._columns[i]
+      if length is None:
         try:
-          value = iterables[i].__next__()
+          value = iterable.__next__()
           result.append(value)
-          cache[i].append(value)
-          indexes[i] += 1
+          self._columns[i][1].append(value)
           continue
         except StopIteration:
-          lengths[i] = len(cache[i])
-          if all(l is not None for l in lengths) and self._max_iterations is None:
-            if self._max_iterations is None:
-              self._max_iterations = max(self._lengths)
+          self._columns[i][2] = length = len(cache)
+          if all(column[2] is not None for column in self._columns) \
+              and self._max_iterations is None:
+            self._max_iterations = max(column[2] for column in self._columns)
             raise StopIteration('exhausted')
-      result.append(cache[i][indexes[i]%lengths[i]])
-      indexes[i] += 1
+      result.append(cache[self._index%length])
     self._index += 1
     return tuple(result)
   
@@ -70,4 +59,3 @@ class modzip(object):
         self._max_iterations = max(self._lengths)
     self._index = 0
     return self
-
