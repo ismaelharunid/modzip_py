@@ -13,6 +13,15 @@ class modzip(object):
   _columns = None
   
   def __init__(self, *iterables, max_iterations=None):
+    """
+    Same as zip except it repeats columns until all columns are exhausted.
+    
+    Zip with repeating columns until either all columns are exhausted or the
+    yield count reaches the optional keyword argument "max_iterations".
+    
+    iterations (*args):   the iterable columns
+    max_iterations (int): the number of interations to yield
+    """
     indexes = ", ".join("#{:d}".format(i+1) for i in range(len(iterables)) \
         if not isinstance(iterables[i], Iterable))
     if indexes:
@@ -24,9 +33,11 @@ class modzip(object):
     self._columns = tuple([iter(iterables[i]), [], None] for i in range(n))
   
   def __iter__(self):
+    "returns self, no arguments."
     return self
   
   def __next__(self):
+    "returns the next set of iterated columns, no arguments."
     if self._max_iterations is not None and self._index >= self._max_iterations:
       raise StopIteration('exhausted')
     n = self._count
@@ -50,7 +61,7 @@ class modzip(object):
     return tuple(result)
   
   def reset(self):
-    # make sure we exhausted the iterator or things get out of sync
+    "Resets the iterables for another run., no arguments."
     if self._max_iterations is None:
       try:
         while True:
